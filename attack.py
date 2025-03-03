@@ -19,12 +19,12 @@ from torchattacks.attacks.mifgsm import MIFGSM
 from torchattacks.attacks.difgsm import DIFGSM
 from torchattacks.attacks.tifgsm import TIFGSM
 from torchattacks.attacks.sinifgsm import SINIFGSM
-import models
-from utils.utils import Normalize, set_seed
+#import models
+from utils import Normalize, set_seed
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--method', type=str, default='PGD', choices=['PGD', 'MIFGSM', 'DIFGSM'])
-parser.add_argument('--epsilon', type=float, default=4/255)
+parser.add_argument('--epsilon', type=float, default=8/255)
 parser.add_argument('--step_size', type=float, default=1/255)
 parser.add_argument('--niters', type=int, default=50)
 parser.add_argument('--prob', type=float, default=0.5)
@@ -57,6 +57,8 @@ def main():
     testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
     testloader = data.DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
+    args.step_size=args.epsilon/args.niters
+
     # modelss = []
     # if args.method == 'ori':
     #     model.load_state_dict(torch.load('models/densenet-bc-L100-k12/model_best.pth.tar', map_location=device)['state_dict'])
@@ -75,15 +77,41 @@ def main():
     # if args.method == 'lra12':
     #     model.load_state_dict(torch.load('finetuned/lra12/ep_9.pt', map_location=device)['state_dict'])
 
-    resnet18 = models.__dict__['resnet18'](pretrained=False, prob=args.prob, clop_layer=args.clop_layer)
-    state_dict = torch.load('models/resnet/resnet18.pt', map_location='cpu')
-    resnet18.load_state_dict(state_dict)
-    resnet18.to(device)
-    resnet18.eval()
-    resnet18 = nn.Sequential(
-        Normalize(), 
-        resnet18)
-        
+###PAPER
+    #resnet18 = models.__dict__['resnet18'](pretrained=False, prob=args.prob, clop_layer=args.clop_layer)
+    #state_dict = torch.load('models/resnet/resnet18.pt', map_location='cpu')
+    #resnet18.load_state_dict(state_dict)
+    #resnet18.to(device)
+    #resnet18.eval()
+    #resnet18 = nn.Sequential(
+    #    Normalize(), 
+    #    resnet18)
+###END
+    #dt="cifar10"
+    #md="resnet56"
+    #model = getattr(resnet, f"{dt}_{md}")()
+    #model.load_state_dict(torch.load('finetuned/lra1/ep_9.pt', map_location=device)['state_dict'])
+    #model = nn.Sequential(
+    #             Normalize(),
+    #             model
+    #             )
+    #model.eval()
+    #model.to(device)
+    
+
+    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_vgg16_bn", pretrained=False)  
+    model = nn.DataParallel(model)
+    model = model.to(device)
+
+    # Load checkpoint
+    checkpoint = torch.load('finetuned_2/lra1/ep_9.pt', map_location=device)
+    model.load_state_dict(checkpoint["state_dict"])
+    model = nn.Sequential(
+                 Normalize(),
+                 model
+                 ).to(device)
+    model.eval()
+
     # vgg19_bn = models.__dict__['vgg19_bn'](num_classes=10)
     # vgg19_bn.features = nn.DataParallel(vgg19_bn.features)
     # vgg19_bn.load_state_dict(torch.load('models/vgg19_bn/model_best.pth.tar', map_location=(device))['state_dict'])
@@ -94,7 +122,7 @@ def main():
     #     vgg19_bn)
 
     if args.method == 'PGD':
-        attack = PGD(resnet18, eps=args.epsilon, alpha=args.step_size, steps=args.niters)
+        attack = PGD(model, eps=args.epsilon, alpha=args.step_size, steps=args.niters)
     elif args.method == 'MIFGSM':
         attack = MIFGSM(resnet18, eps=args.epsilon, alpha=args.step_size, steps=args.niters)
     elif args.method == 'DIFGSM':

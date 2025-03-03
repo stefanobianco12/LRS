@@ -17,8 +17,9 @@ import torchvision.datasets as datasets
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
-import models
-from utils.ft import llr, tulip, cure
+#import models
+#from utils.ft import llr, tulip, cure
+from utils import tulip
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--method', type=str, default='lra1')
@@ -27,10 +28,10 @@ parser.add_argument('--lam1', type=float, default=5.0)
 parser.add_argument('--step_size1', type=float, default=0.01)
 parser.add_argument('--lam2', type=float, default=5)
 parser.add_argument('--step_size2', type=float, default=1.5)
-parser.add_argument('--lr', type=float, default=1e-3)
+parser.add_argument('--lr', type=float, default=1e-4)
 parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--seed', type=int, default=0)
-parser.add_argument('--save-dir', type=str, default='finetuned')
+parser.add_argument('--save-dir', type=str, default='finetuned_2')
 args = parser.parse_args()
 
 logging.basicConfig(filename='logs.log', level=logging.INFO)
@@ -64,8 +65,8 @@ def main():
     np.random.seed(SEED)
     
     args.constraint = "linf"
-    args.niters = 10
-    args.epsilon = 8 / 255.
+    args.niters = 50
+    args.epsilon = 4 / 255.
     args.step_size = 1 / 255.
     
     os.makedirs(args.save_dir, exist_ok=True)
@@ -92,16 +93,21 @@ def main():
     
     #model = models.__dict__['resnet50'](pretrained=True)
     #model.load_state_dict(torch.load('models/resnet/resnet50.pt', map_location='cpu'))
-    model = models.__dict__['densenet'](
-                num_classes=10,
-                depth=100,
-                growthRate=12,
-                compressionRate=2,
-                dropRate=0,
-            )
+
+    #model = models.__dict__['densenet'](
+    #            num_classes=10,
+    #            depth=100,
+    #            growthRate=12,
+    #            compressionRate=2,
+    #            dropRate=0,
+    #        )
+    #model = nn.DataParallel(model)
+    #model.load_state_dict(torch.load('models/densenet-bc-L100-k12/model_best.pth.tar', map_location=device)['state_dict'])
+    #model = model.to(device)
+
+    model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_vgg16_bn", pretrained=True)
     model = nn.DataParallel(model)
-    model.load_state_dict(torch.load('models/densenet-bc-L100-k12/model_best.pth.tar', map_location=device)['state_dict'])
-    model = model.to(device)
+    model=model.to(device)
     
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     
@@ -116,14 +122,13 @@ def main():
             #output, loss = llr(model, loss_fn, img, label, optimizer)
             if args.method == 'lra1':
                 output, loss = tulip(model, loss_fn, img, label, args.step_size1, args.lam1)
-            if args.method == 'lra2':
-                output, loss = cure(model, loss_fn, img, label, args.step_size2, args.lam2)
-            if args.method == 'lra12':
-                output, loss = tulip(model, loss_fn, img, label, args.step_size1, args.lam1) + cure(model, loss_fn, img, label, args.step_size2, args.lam2)
+            #if args.method == 'lra2':
+            #    output, loss = cure(model, loss_fn, img, label, args.step_size2, args.lam2)
+            #if args.method == 'lra12':
+            #    output, loss = tulip(model, loss_fn, img, label, args.step_size1, args.lam1) + cure(model, loss_fn, img, label, args.step_size2, args.lam2)
                 
             loss.backward()
             optimizer.step()
-            
             if i % 100 == 0:
                 acc = 100*(output.argmax(1) == label).sum() / len(img)
                 logging.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAcc:{:.2f}'.format(
