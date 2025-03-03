@@ -17,8 +17,6 @@ import torchvision.datasets as datasets
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
-#import models
-#from utils.ft import llr, tulip, cure
 from utils import tulip
 
 parser = argparse.ArgumentParser()
@@ -91,19 +89,6 @@ def main():
     testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
     testloader = data.DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=0)
     
-    #model = models.__dict__['resnet50'](pretrained=True)
-    #model.load_state_dict(torch.load('models/resnet/resnet50.pt', map_location='cpu'))
-
-    #model = models.__dict__['densenet'](
-    #            num_classes=10,
-    #            depth=100,
-    #            growthRate=12,
-    #            compressionRate=2,
-    #            dropRate=0,
-    #        )
-    #model = nn.DataParallel(model)
-    #model.load_state_dict(torch.load('models/densenet-bc-L100-k12/model_best.pth.tar', map_location=device)['state_dict'])
-    #model = model.to(device)
 
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_vgg16_bn", pretrained=True)
     model = nn.DataParallel(model)

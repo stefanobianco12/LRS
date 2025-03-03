@@ -59,46 +59,6 @@ def main():
 
     args.step_size=args.epsilon/args.niters
 
-    # modelss = []
-    # if args.method == 'ori':
-    #     model.load_state_dict(torch.load('models/densenet-bc-L100-k12/model_best.pth.tar', map_location=device)['state_dict'])
-    # if args.method == 'lra1':
-    #     for i in range(10):
-    #         model.load_state_dict(torch.load('finetuned/lra1/ep_9.pt', map_location=device)['state_dict'])
-    #         model = nn.Sequential(
-    #             Normalize(),
-    #             model
-    #             )
-    #         model.eval()
-    #         model.to(device)
-    #         modelss.append(model)
-    # if args.method == 'lra2':
-    #     model.load_state_dict(torch.load('finetuned/lra2/ep_9.pt', map_location=device)['state_dict'])
-    # if args.method == 'lra12':
-    #     model.load_state_dict(torch.load('finetuned/lra12/ep_9.pt', map_location=device)['state_dict'])
-
-###PAPER
-    #resnet18 = models.__dict__['resnet18'](pretrained=False, prob=args.prob, clop_layer=args.clop_layer)
-    #state_dict = torch.load('models/resnet/resnet18.pt', map_location='cpu')
-    #resnet18.load_state_dict(state_dict)
-    #resnet18.to(device)
-    #resnet18.eval()
-    #resnet18 = nn.Sequential(
-    #    Normalize(), 
-    #    resnet18)
-###END
-    #dt="cifar10"
-    #md="resnet56"
-    #model = getattr(resnet, f"{dt}_{md}")()
-    #model.load_state_dict(torch.load('finetuned/lra1/ep_9.pt', map_location=device)['state_dict'])
-    #model = nn.Sequential(
-    #             Normalize(),
-    #             model
-    #             )
-    #model.eval()
-    #model.to(device)
-    
-
     model = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_vgg16_bn", pretrained=False)  
     model = nn.DataParallel(model)
     model = model.to(device)
@@ -111,15 +71,6 @@ def main():
                  model
                  ).to(device)
     model.eval()
-
-    # vgg19_bn = models.__dict__['vgg19_bn'](num_classes=10)
-    # vgg19_bn.features = nn.DataParallel(vgg19_bn.features)
-    # vgg19_bn.load_state_dict(torch.load('models/vgg19_bn/model_best.pth.tar', map_location=(device))['state_dict'])
-    # vgg19_bn.to(device)
-    # vgg19_bn.eval()
-    # vgg19_bn = nn.Sequential(
-    #     Normalize(), 
-    #     vgg19_bn)
 
     if args.method == 'PGD':
         attack = PGD(model, eps=args.epsilon, alpha=args.step_size, steps=args.niters)
